@@ -12,6 +12,7 @@ Os vídeos **não são enviados para nenhum servidor**: tudo acontece no seu com
 - Desenho por cima do vídeo: caneta, seta, retângulo e círculo, em 4 cores
 - Inclinação em graus, com a ferramenta Nivelar: trace uma linha sobre o horizonte e a imagem se alinha sozinha
 - Pós-processamento: nitidez, contraste, gamma, brilho, saturação e matiz, com atalhos "Revelar sombras" e "Realçar detalhes" e botão Comparar para ver o original
+- Comparar 2 vídeos com cortina: arraste a linha para os lados para ver o vídeo A de um lado e o B do outro; cada vídeo tem sua própria timeline e avança quadro a quadro sozinho ou junto com o outro
 - Régua com calibração (meça algo de tamanho conhecido e as medidas saem em metros)
 - Marcadores com notas, visíveis na timeline
 - Volume com barra deslizante (a roda do mouse sobre a barra também ajusta) e botão de mudo
@@ -42,6 +43,8 @@ As marcações ficam salvas no navegador, ligadas ao nome do arquivo de vídeo.
 | 0 | Ajustar à tela |
 | P | Modo apresentar |
 | K | Mudo |
+| C | Comparar 2 vídeos |
+| J L | Quadro do vídeo B (Shift: 10 quadros) |
 | F | Tela cheia |
 
 ## Publicar no GitHub Pages
