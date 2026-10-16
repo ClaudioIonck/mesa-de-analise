@@ -111,6 +111,16 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
 .app.present{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "bottom"}
 .present .side,.present .keys,.present .actions,.present .edit-only{display:none}
 .present .pill.big{display:inline-block}
+/* imagem */
+.fxrow{display:grid;grid-template-columns:74px minmax(0,1fr) 58px;gap:8px;align-items:center}
+.fxrow label{font-size:13px;color:var(--muted)}
+.fxrow.mod label{color:var(--accent)}
+.fxrow input[type=range]{width:100%;min-width:0;accent-color:var(--accent);cursor:pointer}
+.fxrow .field{width:58px;padding:3px 5px;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.btn.sm{padding:4px 8px;font-size:12px}
+.btn.hold{user-select:none}
+.pill.cmp{display:none;color:var(--accent)}
+.comparing .pill.cmp{display:inline-block}
 /* volume */
 .vol{display:inline-flex;align-items:center;gap:6px}
 #volume{width:96px;accent-color:var(--accent);cursor:pointer}
@@ -185,6 +195,16 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
       <div class="row"><span class="note" id="calInfo">Sem calibração: medidas em pixels.</span><button class="x" id="btnCalClear" type="button" hidden>remover</button></div>
     </section>
     <section class="sec">
+      <div class="h">Imagem <button class="x" id="imgReset" type="button" title="Voltar tudo ao original">restaurar</button></div>
+      <div id="fxRows" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div class="row">
+        <button class="btn sm" id="preShadow" type="button">Revelar sombras</button>
+        <button class="btn sm" id="preDetail" type="button">Realçar detalhes</button>
+        <button class="btn sm hold" id="btnCompare" type="button" title="Segure para ver o original (X)">Comparar</button>
+      </div>
+      <p class="note">Use a ferramenta Nivelar (<kbd>H</kbd>) e trace uma linha sobre algo que deveria estar reto, como o horizonte. A imagem gira para alinhar. Duplo clique numa barra volta ao padrão.</p>
+    </section>
+    <section class="sec">
       <div class="h">Desenhos</div>
       <label class="chk"><input type="checkbox" id="showAll"> Mostrar em todos os quadros</label>
       <p class="note">Por padrão, cada desenho aparece só no quadro onde foi feito. Os pontos brancos na timeline mostram onde há desenhos.</p>
@@ -200,6 +220,7 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
       <button class="tool" data-tool="rect" title="Retângulo (B)" type="button"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/></svg></button>
       <button class="tool" data-tool="ellipse" title="Círculo (O)" type="button"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="7"/></svg></button>
       <button class="tool" data-tool="ruler" title="Régua (R)" type="button"><svg viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2"/></svg></button>
+      <button class="tool" data-tool="level" title="Nivelar inclinação (H)" type="button"><svg viewBox="0 0 24 24"><path d="M3 16L21 8"/><path d="M3 12h18" stroke-dasharray="2 3"/><circle cx="12" cy="12" r="1.5"/></svg></button>
       <hr>
       <button class="sw on" data-color="#f2a93b" style="background:#f2a93b" title="Âmbar (1)" type="button" aria-label="Âmbar"></button>
       <button class="sw" data-color="#4fd1c5" style="background:#4fd1c5" title="Ciano (2)" type="button" aria-label="Ciano"></button>
@@ -209,7 +230,7 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
       <button class="tool" id="btnUndo" title="Desfazer (Z)" type="button"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></svg></button>
       <button class="tool" id="btnClearFrame" title="Apagar desenhos deste quadro (Delete)" type="button"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
     </div>
-    <div class="hud"><span class="pill big" id="hudTc">00:00:00</span><span class="pill" id="hudZoom">100%</span></div>
+    <div class="hud"><span class="pill big" id="hudTc">00:00:00</span><span class="pill cmp">ORIGINAL</span><span class="pill" id="hudRot" hidden>0°</span><span class="pill" id="hudZoom">100%</span></div>
     <div class="empty" id="empty">
       <div class="drop">
         <h2>Arraste seus vídeos aqui</h2>
@@ -222,6 +243,10 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
     </div>
   </main>
 
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <filter id="fxGam" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feComponentTransfer><feFuncR class="gf" type="gamma" amplitude="1" exponent="1" offset="0"/><feFuncG class="gf" type="gamma" amplitude="1" exponent="1" offset="0"/><feFuncB class="gf" type="gamma" amplitude="1" exponent="1" offset="0"/></feComponentTransfer></filter>
+    <filter id="fxSharp" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix id="sharpK" order="3" kernelMatrix="0 0 0 0 1 0 0 0 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter>
+  </svg>
   <div class="edge" id="edge"></div>
   <footer class="bottom">
     <div class="ctl">
@@ -254,7 +279,7 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
       <span><kbd>Espaço</kbd> play</span><span><kbd>←</kbd><kbd>→</kbd> quadro</span><span><kbd>Shift</kbd>+setas 10 quadros</span>
       <span><kbd>↑</kbd><kbd>↓</kbd> clipe</span><span><kbd>M</kbd> marcar</span><span><kbd>[</kbd><kbd>]</kbd> marcadores</span>
       <span><kbd>V</kbd><kbd>D</kbd><kbd>A</kbd><kbd>B</kbd><kbd>O</kbd><kbd>R</kbd> ferramentas</span><span><kbd>1</kbd>–<kbd>4</kbd> cor</span>
-      <span>roda do mouse: zoom</span><span><kbd>Alt</kbd>+arrastar: mover</span><span><kbd>Z</kbd> desfazer</span><span><kbd>P</kbd> apresentar</span><span><kbd>K</kbd> mudo</span><span><kbd>F</kbd> tela cheia</span>
+      <span>roda do mouse: zoom</span><span><kbd>Alt</kbd>+arrastar: mover</span><span><kbd>Z</kbd> desfazer</span><span><kbd>P</kbd> apresentar</span><span><kbd>K</kbd> mudo</span><span><kbd>Q</kbd><kbd>E</kbd> inclinar</span><span><kbd>H</kbd> nivelar</span><span><kbd>X</kbd> segurar: original</span><span><kbd>F</kbd> tela cheia</span>
     </div>
   </footer>
 </div>
@@ -295,7 +320,7 @@ fps=+ls.get('va:fps')||30;$('#fps').value=fps;
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,1800)}
 const key=c=>'va:clip:'+c.name+'|'+c.size;
 function save(){if(cur>=0)ls.set(key(clips[cur]),JSON.stringify(state))}
-function load(c){try{const r=ls.get(key(c));if(r){const o=JSON.parse(r);return{markers:o.markers||[],ann:o.ann||[],calib:o.calib||null}}}catch(e){}return{markers:[],ann:[],calib:null}}
+function load(c){try{const r=ls.get(key(c));if(r){const o=JSON.parse(r);return{markers:o.markers||[],ann:o.ann||[],calib:o.calib||null,img:o.img||null}}}catch(e){}return{markers:[],ann:[],calib:null,img:null}}
 
 function fmt(t){if(!isFinite(t))t=0;const f=Math.floor((t%1)*fps+1e-6),sec=Math.floor(t)%60,m=Math.floor(t/60);return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0')+':'+String(f).padStart(2,'0')}
 const frameNow=()=>Math.floor(video.currentTime*fps+1e-6);
@@ -338,7 +363,7 @@ function renderClips(){
   $('#clipCount').textContent=clips.length;$('#clipsEmpty').hidden=clips.length>0;
 }
 function removeClip(i){
-  if(i===cur){save();cur=-1;video.removeAttribute('src');video.load();state={markers:[],ann:[],calib:null}}
+  if(i===cur){save();cur=-1;video.removeAttribute('src');video.load();state={markers:[],ann:[],calib:null,img:null};applyImg()}
   URL.revokeObjectURL(clips[i].url);clips.splice(i,1);
   if(cur>i)cur--;
   if(cur<0&&clips.length)select(Math.min(i,clips.length-1));
@@ -346,7 +371,7 @@ function removeClip(i){
 }
 function select(i){
   if(i<0||i>=clips.length)return;
-  save();cur=i;state=load(clips[i]);undoStack.length=0;
+  save();cur=i;state=load(clips[i]);undoStack.length=0;applyImg();
   video.src=clips[i].url;video.load();
   $('#empty').hidden=true;renderClips();renderMarkers();renderCalib();
 }
@@ -358,8 +383,10 @@ document.addEventListener('drop',e=>{e.preventDefault();stage.classList.remove('
 
 /* ---------- vista / zoom ---------- */
 const vw=()=>video.videoWidth||1280,vh=()=>video.videoHeight||720;
-function base(){const r=stage.getBoundingClientRect();return Math.min(r.width/vw(),r.height/vh())}
-function apply(){view.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;$('#hudZoom').textContent=Math.round(zoom*100)+'%'}
+const rotDeg=()=>(state.img&&state.img.rot)||0;
+function base(){const r=stage.getBoundingClientRect(),a=rotDeg()*Math.PI/180,c=Math.abs(Math.cos(a)),sn=Math.abs(Math.sin(a));
+  return Math.min(r.width/(vw()*c+vh()*sn),r.height/(vw()*sn+vh()*c))}
+function apply(){view.style.transform=`translate(${tx}px,${ty}px) scale(${s}) translate(${vw()/2}px,${vh()/2}px) rotate(${rotDeg()}deg) translate(${-vw()/2}px,${-vh()/2}px)`;$('#hudZoom').textContent=Math.round(zoom*100)+'%'}
 function fit(){const r=stage.getBoundingClientRect();zoom=1;s=base();tx=(r.width-vw()*s)/2;ty=(r.height-vh()*s)/2;apply()}
 function zoomAt(cx,cy,f){const nz=clamp(zoom*f,.5,20),ns=base()*nz,px=(cx-tx)/s,py=(cy-ty)/s;zoom=nz;s=ns;tx=cx-px*s;ty=cy-py*s;apply()}
 function zoomCenter(f){const r=stage.getBoundingClientRect();zoomAt(r.width/2,r.height/2,f)}
@@ -369,12 +396,14 @@ video.addEventListener('loadedmetadata',()=>{
   canvas.width=vw();canvas.height=vh();view.style.width=vw()+'px';view.style.height=vh()+'px';
   video.playbackRate=+$('#speed').value;
   if(clips[cur]){clips[cur].duration=video.duration;renderClips()}
-  fit();tick();renderTimeline();
+  applyImg();fit();tick();renderTimeline();
 });
 
 /* ---------- desenho ---------- */
 const undoStack=[];
-function toVid(e){const r=stage.getBoundingClientRect();return{x:(e.clientX-r.left-tx)/s,y:(e.clientY-r.top-ty)/s}}
+function toVid(e){const r=stage.getBoundingClientRect(),cx=vw()/2,cy=vh()/2,a=-rotDeg()*Math.PI/180;
+  const x=(e.clientX-r.left-tx)/s-cx,y=(e.clientY-r.top-ty)/s-cy;
+  return{x:x*Math.cos(a)-y*Math.sin(a)+cx,y:x*Math.sin(a)+y*Math.cos(a)+cy}}
 stage.addEventListener('pointerdown',e=>{
   if(cur<0||e.target.closest('.palette,.hud,.empty'))return;
   stage.setPointerCapture(e.pointerId);
@@ -392,6 +421,9 @@ function endPointer(){
   if(panning){panning=null;stage.classList.remove('panning');return}
   if(!drawing)return;const d=drawing;drawing=null;
   const [a,b]=[d.pts[0],d.pts[d.pts.length-1]];
+  if(d.type==='level'){if(Math.hypot(b.x-a.x,b.y-a.y)>8){let ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+      if(ang>90)ang-=180;if(ang<-90)ang+=180;setImg('rot',Math.round(-ang*10)/10);toast('Inclinação ajustada: '+fmtNum(img().rot)+'°')}
+    draw();return}
   if(d.pts.length>2||Math.hypot(b.x-a.x,b.y-a.y)>4){
     d.pts=d.pts.map(p=>({x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10}));
     state.ann.push(d);undoStack.push(d);save();renderTimeline();
@@ -414,6 +446,7 @@ function drawShape(a){
     ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
     ctx.beginPath();ctx.moveTo(q.x,q.y);ctx.lineTo(q.x-h*Math.cos(ang-.45),q.y-h*Math.sin(ang-.45));ctx.lineTo(q.x-h*Math.cos(ang+.45),q.y-h*Math.sin(ang+.45));ctx.closePath();ctx.fill();
   }
+  else if(a.type==='level'){ctx.setLineDash([lw*4,lw*2]);ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([])}
   else if(a.type==='ruler'){
     const ang=Math.atan2(q.y-p.y,q.x-p.x),t=lw*3,nx=-Math.sin(ang)*t,ny=Math.cos(ang)*t;
     ctx.setLineDash([lw*3,lw*2]);ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([]);
@@ -541,7 +574,7 @@ $('#modeEdit').onclick=()=>setMode(false);$('#modePresent').onclick=()=>setMode(
 /* ---------- exportar / importar ---------- */
 function exportText(){
   const c=clips[cur];if(!c)return'Abra um clipe primeiro.';
-  if($('#expFmt').value==='json')return JSON.stringify({app:'mesa-de-analise',clip:c.name,fps,markers:state.markers,ann:state.ann,calib:state.calib},null,1);
+  if($('#expFmt').value==='json')return JSON.stringify({app:'mesa-de-analise',clip:c.name,fps,markers:state.markers,ann:state.ann,calib:state.calib,img:state.img},null,1);
   if(!state.markers.length)return'Nenhum marcador neste clipe.';
   return c.name+'\n\n'+state.markers.map((m,i)=>`${fmt(m.t)}  ${m.note||'Marcador '+(i+1)}`).join('\n');
 }
@@ -559,7 +592,7 @@ $('#impFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new Fi
 $('#impApply').onclick=()=>{
   if(cur<0){toast('Abra um clipe primeiro');return}
   try{const o=JSON.parse($('#impText').value);if(!Array.isArray(o.markers)&&!Array.isArray(o.ann))throw 0;
-    state={markers:o.markers||[],ann:o.ann||[],calib:o.calib||null};if(o.fps){fps=o.fps;$('#fps').value=fps}
+    state={markers:o.markers||[],ann:o.ann||[],calib:o.calib||null,img:o.img||null};applyImg(true);if(o.fps){fps=o.fps;$('#fps').value=fps}
     save();renderMarkers();renderTimeline();renderCalib();renderClips();draw();$('#mImport').hidden=true;toast('Análise importada')}
   catch(e){toast('Esse texto não é uma análise válida')}
 };
@@ -575,15 +608,65 @@ document.addEventListener('keydown',e=>{
   const map={' ':togglePlay,ArrowLeft:()=>step(-n),ArrowRight:()=>step(n),',':()=>step(-n),'.':()=>step(n),
     ArrowUp:()=>select(cur-1),ArrowDown:()=>select(cur+1),Home:()=>seek(0),End:()=>seek(video.duration||0),
     m:addMarker,'[':()=>jumpMarker(-1),']':()=>jumpMarker(1),
-    v:()=>setTool('pan'),d:()=>setTool('pen'),a:()=>setTool('arrow'),b:()=>setTool('rect'),o:()=>setTool('ellipse'),r:()=>setTool('ruler'),
+    v:()=>setTool('pan'),d:()=>setTool('pen'),a:()=>setTool('arrow'),b:()=>setTool('rect'),o:()=>setTool('ellipse'),r:()=>setTool('ruler'),h:()=>setTool('level'),q:()=>nudgeRot(e.shiftKey?-.1:-1),e:()=>nudgeRot(e.shiftKey?.1:1),
     1:()=>setColor('#f2a93b'),2:()=>setColor('#4fd1c5'),3:()=>setColor('#ef6b5b'),4:()=>setColor('#ffffff'),
     z:undo,Delete:clearFrame,Backspace:clearFrame,0:fit,'+':()=>zoomCenter(1.25),'=':()=>zoomCenter(1.25),'-':()=>zoomCenter(1/1.25),
     k:toggleMute,p:()=>setMode(!app.classList.contains('present')),f:fullscreen,Escape:()=>app.classList.contains('present')&&setMode(false)};
+  if(k.toLowerCase()==='x'){if(!e.repeat)setCompare(true);e.preventDefault();return}
   const fn=map[k.length===1?k.toLowerCase():k]||map[k];
   if(fn){e.preventDefault();fn()}
 });
+/* ---------- imagem: inclinação e pós-processamento ---------- */
+const FX=[
+  {k:'rot',label:'Inclinação',min:-90,max:90,step:.1,def:0,unit:'°'},
+  {k:'sharp',label:'Nitidez',min:0,max:3,step:.05,def:0,unit:''},
+  {k:'con',label:'Contraste',min:0,max:300,step:1,def:100,unit:'%'},
+  {k:'gam',label:'Gamma',min:.2,max:3,step:.01,def:1,unit:''},
+  {k:'bri',label:'Brilho',min:0,max:300,step:1,def:100,unit:'%'},
+  {k:'sat',label:'Saturação',min:0,max:300,step:1,def:100,unit:'%'},
+  {k:'hue',label:'Matiz',min:-180,max:180,step:1,def:0,unit:'°'}];
+const defImg=()=>Object.fromEntries(FX.map(f=>[f.k,f.def]));
+const img=()=>state.img||(state.img=defImg());
+const fmtNum=v=>String(Math.round(v*100)/100).replace('.',',');
+let comparing=false;
+FX.forEach(f=>{
+  const row=document.createElement('div');row.className='fxrow';row.id='row-'+f.k;
+  row.innerHTML=`<label for="fx-${f.k}">${f.label}</label><input type="range" id="fx-${f.k}" min="${f.min}" max="${f.max}" step="${f.step}" value="${f.def}"><input class="field" type="number" id="num-${f.k}" min="${f.k==='rot'?-180:f.min}" max="${f.k==='rot'?180:f.max}" step="${f.step}" value="${f.def}" aria-label="${f.label}${f.unit?' em '+f.unit:''}">`;
+  const rg=row.querySelector('input[type=range]'),nm=row.querySelector('input[type=number]');
+  rg.oninput=()=>setImg(f.k,+rg.value);
+  rg.ondblclick=()=>setImg(f.k,f.def);
+  nm.onchange=()=>setImg(f.k,+nm.value);
+  rg.addEventListener('keydown',e=>e.stopPropagation());
+  $('#fxRows').appendChild(row);
+});
+function setImg(k,v){if(cur<0)return;const f=FX.find(x=>x.k===k);if(!isFinite(v))v=f.def;
+  v=clamp(v,k==='rot'?-180:f.min,k==='rot'?180:f.max);img()[k]=v;save();applyImg(k==='rot')}
+function nudgeRot(d){if(cur<0)return;setImg('rot',Math.round((img().rot+d)*10)/10)}
+function applyImg(refit){
+  const g=state.img||defImg();
+  FX.forEach(f=>{const v=g[f.k];$('#fx-'+f.k).value=v;const nm=$('#num-'+f.k);if(document.activeElement!==nm)nm.value=v;$('#row-'+f.k).classList.toggle('mod',v!==f.def)});
+  const parts=[];
+  if(g.gam!==1){document.querySelectorAll('.gf').forEach(el=>el.setAttribute('exponent',String(1/g.gam)));parts.push('url(#fxGam)')}
+  if(g.sharp>0){const a=g.sharp;$('#sharpK').setAttribute('kernelMatrix',`0 ${-a} 0 ${-a} ${1+4*a} ${-a} 0 ${-a} 0`);parts.push('url(#fxSharp)')}
+  if(g.bri!==100)parts.push(`brightness(${g.bri/100})`);
+  if(g.con!==100)parts.push(`contrast(${g.con/100})`);
+  if(g.sat!==100)parts.push(`saturate(${g.sat/100})`);
+  if(g.hue!==0)parts.push(`hue-rotate(${g.hue}deg)`);
+  video.style.filter=comparing||!parts.length?'none':parts.join(' ');
+  const hr=$('#hudRot');hr.hidden=!g.rot;hr.textContent=fmtNum(g.rot)+'°';
+  if(refit&&cur>=0){if(zoom===1)fit();else apply()}
+}
+function setCompare(on){comparing=on;app.classList.toggle('comparing',on);applyImg()}
+document.addEventListener('keyup',e=>{if(e.key.toLowerCase()==='x'&&comparing)setCompare(false)});
+window.addEventListener('blur',()=>comparing&&setCompare(false));
+const cmpBtn=$('#btnCompare');
+cmpBtn.addEventListener('pointerdown',e=>{cmpBtn.setPointerCapture(e.pointerId);setCompare(true)});
+['pointerup','pointercancel'].forEach(t=>cmpBtn.addEventListener(t,()=>setCompare(false)));
+$('#imgReset').onclick=()=>{if(cur<0)return;state.img=defImg();save();applyImg(true);toast('Imagem restaurada')};
+$('#preShadow').onclick=()=>{if(cur<0)return;Object.assign(img(),{gam:1.8,bri:105,con:95});save();applyImg()};
+$('#preDetail').onclick=()=>{if(cur<0)return;Object.assign(img(),{sharp:.8,con:120,sat:110});save();applyImg()};
 window.addEventListener('beforeunload',save);
-renderClips();renderMarkers();renderCalib();
+renderClips();renderMarkers();renderCalib();applyImg();
 </script>
 </body>
 </html>

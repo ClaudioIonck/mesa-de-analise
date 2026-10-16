@@ -10,6 +10,8 @@ Os vídeos **não são enviados para nenhum servidor**: tudo acontece no seu com
 - Avanço quadro a quadro, FPS ajustável e velocidade de 0,1× a 2×
 - Zoom com a roda do mouse e arrastar para mover
 - Desenho por cima do vídeo: caneta, seta, retângulo e círculo, em 4 cores
+- Inclinação em graus, com a ferramenta Nivelar: trace uma linha sobre o horizonte e a imagem se alinha sozinha
+- Pós-processamento: nitidez, contraste, gamma, brilho, saturação e matiz, com atalhos "Revelar sombras" e "Realçar detalhes" e botão Comparar para ver o original
 - Régua com calibração (meça algo de tamanho conhecido e as medidas saem em metros)
 - Marcadores com notas, visíveis na timeline
 - Volume com barra deslizante (a roda do mouse sobre a barra também ajusta) e botão de mudo
@@ -29,6 +31,9 @@ As marcações ficam salvas no navegador, ligadas ao nome do arquivo de vídeo.
 | M | Marcar momento |
 | [ ] | Marcador anterior / próximo |
 | V D A B O R | Mover, caneta, seta, retângulo, círculo, régua |
+| H | Nivelar inclinação |
+| Q E | Inclinar 1° (Shift: 0,1°) |
+| X (segurar) | Ver imagem original |
 | 1–4 | Cor |
 | Z ou Ctrl+Z | Desfazer |
 | Delete | Apagar desenhos do quadro |
