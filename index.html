@@ -111,6 +111,23 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
 .app.present{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "bottom"}
 .present .side,.present .keys,.present .actions,.present .edit-only{display:none}
 .present .pill.big{display:inline-block}
+/* volume */
+.vol{display:inline-flex;align-items:center;gap:6px}
+#volume{width:96px;accent-color:var(--accent);cursor:pointer}
+.vol .pct{font-family:var(--f-mono);font-size:12px;color:var(--muted);width:3.2em;font-variant-numeric:tabular-nums}
+/* tela cheia imersiva */
+.app.fs{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);grid-template-areas:"stage";padding:0;gap:0}
+.fs .top,.fs .keys{display:none}
+.fs .stage{border:0;border-radius:0}
+.fs .pill.big{display:inline-block}
+.fs .bottom{position:fixed;z-index:6;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--glass);backdrop-filter:blur(6px)}
+.fs .side{position:fixed;z-index:7;left:0;top:0;bottom:0;width:290px;border-radius:0 10px 10px 0;border-left:0;display:flex;transform:translateX(-105%);transition:transform .2s ease}
+.fs .side.peek{transform:none}
+.fs .bottom,.fs .palette,.fs .hud{transition:opacity .25s ease}
+.fs.idle .bottom,.fs.idle .palette,.fs.idle .hud{opacity:0;pointer-events:none}
+.fs.idle .stage{cursor:none}
+.fs .edge{position:fixed;left:0;top:0;bottom:0;width:14px;z-index:6}
+.edge{display:none}.fs .edge{display:block}
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;width:min(640px,100%);display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
@@ -205,6 +222,7 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
     </div>
   </main>
 
+  <div class="edge" id="edge"></div>
   <footer class="bottom">
     <div class="ctl">
       <button class="btn sq" id="bStart" title="Início (Home)" type="button"><svg viewBox="0 0 24 24"><path d="M6 5v14M19 5l-9 7 9 7z"/></svg></button>
@@ -228,7 +246,7 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
       <button class="btn sq" id="bZoomOut" title="Diminuir zoom (−)" type="button">−</button>
       <button class="btn" id="bFit" title="Ajustar à tela (0)" type="button">Ajustar</button>
       <button class="btn sq" id="bZoomIn" title="Aumentar zoom (+)" type="button">+</button>
-      <button class="btn sq" id="bMute" title="Som" type="button"><svg viewBox="0 0 24 24" id="muteIco"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 010 6"/></svg></button>
+      <span class="vol"><button class="btn sq" id="bMute" title="Mudo (K)" type="button"><svg viewBox="0 0 24 24" id="muteIco"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 010 6"/></svg></button><input type="range" id="volume" min="0" max="100" step="1" value="100" aria-label="Volume" title="Volume (roda do mouse aqui ajusta)"><span class="pct" id="volPct">100%</span></span>
       <button class="btn" id="bFull" title="Tela cheia (F)" type="button">Tela cheia</button>
     </div>
     <div class="timeline" id="timeline"><div id="played"></div><div id="tlMarks"></div><div id="head" style="left:0"></div></div>
@@ -236,7 +254,7 @@ kbd{font-family:var(--f-mono);font-size:11px;background:var(--panel-2);border:1p
       <span><kbd>Espaço</kbd> play</span><span><kbd>←</kbd><kbd>→</kbd> quadro</span><span><kbd>Shift</kbd>+setas 10 quadros</span>
       <span><kbd>↑</kbd><kbd>↓</kbd> clipe</span><span><kbd>M</kbd> marcar</span><span><kbd>[</kbd><kbd>]</kbd> marcadores</span>
       <span><kbd>V</kbd><kbd>D</kbd><kbd>A</kbd><kbd>B</kbd><kbd>O</kbd><kbd>R</kbd> ferramentas</span><span><kbd>1</kbd>–<kbd>4</kbd> cor</span>
-      <span>roda do mouse: zoom</span><span><kbd>Alt</kbd>+arrastar: mover</span><span><kbd>Z</kbd> desfazer</span><span><kbd>P</kbd> apresentar</span>
+      <span>roda do mouse: zoom</span><span><kbd>Alt</kbd>+arrastar: mover</span><span><kbd>Z</kbd> desfazer</span><span><kbd>P</kbd> apresentar</span><span><kbd>K</kbd> mudo</span><span><kbd>F</kbd> tela cheia</span>
     </div>
   </footer>
 </div>
@@ -453,9 +471,29 @@ $('#bBack10').onclick=()=>step(-10);$('#bFwd10').onclick=()=>step(10);$('#bStart
 $('#speed').onchange=e=>video.playbackRate=+e.target.value;
 $('#fps').onchange=e=>{fps=clamp(+e.target.value||30,1,240);e.target.value=fps;ls.set('va:fps',fps);tick();renderTimeline()};
 $('#bZoomIn').onclick=()=>zoomCenter(1.25);$('#bZoomOut').onclick=()=>zoomCenter(1/1.25);$('#bFit').onclick=fit;
-$('#bMute').onclick=()=>{video.muted=!video.muted;$('#bMute').style.opacity=video.muted?.45:1};
+const volEl=$('#volume');
+function renderVol(){const v=video.muted?0:Math.round(video.volume*100);volEl.value=v;$('#volPct').textContent=v+'%';
+  volEl.style.background='';$('#muteIco').innerHTML=v===0?'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 5M22 9l-5 5"/>':v<50?'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 10a3 3 0 010 4"/>':'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 010 6"/><path d="M19.5 6.5a8 8 0 010 11"/>';
+  $('#bMute').style.opacity=v===0?.55:1}
+function setVol(v){v=clamp(v,0,100);video.volume=v/100;video.muted=v===0;if(v>0)ls.set('va:vol',v);renderVol()}
+function toggleMute(){if(video.muted||video.volume===0){video.muted=false;if(video.volume===0)video.volume=(+ls.get('va:vol')||100)/100}else video.muted=true;renderVol()}
+volEl.oninput=()=>setVol(+volEl.value);
+volEl.addEventListener('wheel',e=>{e.preventDefault();setVol((video.muted?0:video.volume*100)+(e.deltaY<0?5:-5))},{passive:false});
+$('#bMute').onclick=toggleMute;
+video.volume=(+ls.get('va:vol')||100)/100;renderVol();
 function fullscreen(){const d=document;if(d.fullscreenElement)d.exitFullscreen?.();else d.documentElement.requestFullscreen?.().catch(()=>toast('Tela cheia indisponível aqui'))}
-$('#bFull').onclick=fullscreen;document.addEventListener('fullscreenchange',()=>setTimeout(()=>cur>=0&&fit(),60));
+$('#bFull').onclick=fullscreen;
+const side=document.querySelector('.side'),bottomBar=document.querySelector('.bottom');let idleT=0;
+function wake(){app.classList.remove('idle');clearTimeout(idleT);
+  idleT=setTimeout(()=>{if(!app.classList.contains('fs'))return;
+    if(bottomBar.matches(':hover')||document.querySelector('.palette').matches(':hover')||side.classList.contains('peek')||drawing||panning||bottomBar.contains(document.activeElement)&&document.activeElement.matches('select,input'))return wake();
+    app.classList.add('idle')},2500)}
+document.addEventListener('fullscreenchange',()=>{const on=!!document.fullscreenElement;app.classList.toggle('fs',on);side.classList.remove('peek');
+  if(on)wake();else{app.classList.remove('idle');clearTimeout(idleT)}
+  setTimeout(()=>cur>=0&&fit(),60)});
+document.addEventListener('pointermove',e=>{if(!app.classList.contains('fs'))return;wake();if(e.clientX<14)side.classList.add('peek')});
+side.addEventListener('mouseleave',()=>side.classList.remove('peek'));
+document.addEventListener('keydown',()=>{if(app.classList.contains('fs'))wake()},true);
 
 /* timeline */
 const tl=$('#timeline');let scrub=false;
@@ -540,7 +578,7 @@ document.addEventListener('keydown',e=>{
     v:()=>setTool('pan'),d:()=>setTool('pen'),a:()=>setTool('arrow'),b:()=>setTool('rect'),o:()=>setTool('ellipse'),r:()=>setTool('ruler'),
     1:()=>setColor('#f2a93b'),2:()=>setColor('#4fd1c5'),3:()=>setColor('#ef6b5b'),4:()=>setColor('#ffffff'),
     z:undo,Delete:clearFrame,Backspace:clearFrame,0:fit,'+':()=>zoomCenter(1.25),'=':()=>zoomCenter(1.25),'-':()=>zoomCenter(1/1.25),
-    p:()=>setMode(!app.classList.contains('present')),f:fullscreen,Escape:()=>app.classList.contains('present')&&setMode(false)};
+    k:toggleMute,p:()=>setMode(!app.classList.contains('present')),f:fullscreen,Escape:()=>app.classList.contains('present')&&setMode(false)};
   const fn=map[k.length===1?k.toLowerCase():k]||map[k];
   if(fn){e.preventDefault();fn()}
 });

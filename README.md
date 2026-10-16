@@ -12,6 +12,8 @@ Os vídeos **não são enviados para nenhum servidor**: tudo acontece no seu com
 - Desenho por cima do vídeo: caneta, seta, retângulo e círculo, em 4 cores
 - Régua com calibração (meça algo de tamanho conhecido e as medidas saem em metros)
 - Marcadores com notas, visíveis na timeline
+- Volume com barra deslizante (a roda do mouse sobre a barra também ajusta) e botão de mudo
+- Tela cheia imersiva: os painéis somem e voltam quando você mexe o mouse; encoste o mouse na borda esquerda para abrir a lista de clipes
 - Modo Apresentar, que esconde os painéis (bom para live)
 - Exportar marcadores em texto ou a análise completa em JSON, e importar de volta
 
@@ -34,6 +36,7 @@ As marcações ficam salvas no navegador, ligadas ao nome do arquivo de vídeo.
 | Alt + arrastar | Mover a imagem |
 | 0 | Ajustar à tela |
 | P | Modo apresentar |
+| K | Mudo |
 | F | Tela cheia |
 
 ## Publicar no GitHub Pages
